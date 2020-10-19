@@ -1,0 +1,379 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <name>notifications-api</name>
+    <url>http://maven.apache.org</url>
+    <groupId>com.sc</groupId>
+    <artifactId>notifications-api</artifactId>
+    <version>0.0.1-SNAPSHOT</version>
+
+    <properties>
+        <api_name>notifications</api_name>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <java.version>1.8</java.version>
+        <packaging.type>war</packaging.type>
+        <start-class>com.sc.Application</start-class>
+    </properties>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>1.5.1.RELEASE</version>
+    </parent>
+    <repositories>
+        <repository>
+            <id>central</id>
+            <name>Standard Chartered Release Repository</name>
+            <url>https://artifactory.global.standardchartered.com/artifactory/maven-release</url>
+            <layout>default</layout>
+        </repository>
+
+        <repository>
+            <id>snapshots</id>
+            <name>Snapshot Reposiroty - standardchartered.com-snapshots</name>
+            <url>https://artifactory.global.standardchartered.com/artifactory/maven-release</url>
+            <layout>default</layout>
+        </repository>
+    </repositories>
+
+    <pluginRepositories>
+        <pluginRepository>
+            <id>central</id>
+            <name>Maven Plugin Repository</name>
+            <url>https://artifactory.global.standardchartered.com/artifactory/maven-release</url>
+            <layout>default</layout>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+            <releases>
+                <updatePolicy>never</updatePolicy>
+            </releases>
+        </pluginRepository>
+    </pluginRepositories>
+
+    <profiles>
+        <profile>
+            <id>jar</id>
+            <properties>
+                <packaging.type>jar</packaging.type>
+            </properties>
+        </profile>
+        <profile>
+            <id>war</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <packaging.type>war</packaging.type>
+            </properties>
+            <dependencies>
+                <dependency>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-tomcat</artifactId>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+    </profiles>
+
+    <build>
+        <finalName>${api_name}</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <skipTests>true</skipTests>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.sc.Application</mainClass>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-war-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>com.sc.Application</mainClass>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-orm</artifactId>
+            <version>4.3.6.RELEASE</version>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <version>5.0.4.Final</version>
+        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.postgresql</groupId>-->
+<!--            <artifactId>postgresql</artifactId>-->
+<!--        </dependency>-->
+        <dependency>
+            <groupId>com.oracle</groupId>
+            <artifactId>ojdbc7</artifactId>
+            <version>12.1.0.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis</artifactId>
+            <version>3.4.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-tx</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis-spring</artifactId>
+            <version>1.3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-dbcp2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.springfox</groupId>
+            <artifactId>springfox-data-rest</artifactId>
+            <version>2.7.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+</project>
+-------------------------------------------------------------------------------------
+package com.sc;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.web.support.SpringBootServletInitializer;
+
+@SpringBootApplication
+@EnableConfigurationProperties
+public class Application extends SpringBootServletInitializer {
+
+    private static final Logger log = LoggerFactory.getLogger(Application.class);
+
+    public static void main(String[] args) {
+        log.info("Starting Application Context");
+        SpringApplication.run(Application.class, args);
+        log.info("Started Application Context");
+    }
+
+}
+-------------------------------------------------------------------------------------
+package com.sc.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+
+@Configuration
+@EnableWebSecurity
+class WebSecurityConfig extends WebSecurityConfigurerAdapter {
+
+    private static final String[] AUTH_WHITELIST = { "/notifications/**" };
+
+    @Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http.csrf().disable();
+
+        http.authorizeRequests()
+                .antMatchers(AUTH_WHITELIST).permitAll()
+                .antMatchers("/**/*").denyAll();
+    }
+}
+-------------------------------------------------------------------------------------
+package com.sc.controller;
+
+import com.sc.model.NotificationsModel;
+import com.sc.service.NotificationsRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
+@RestController
+@RequestMapping("notifications")
+public class NotificationsController {
+
+    @Autowired
+    private NotificationsRepository notificationsRepository;
+
+    @GetMapping("/allNotifications")
+    public List<NotificationsModel> getAllNotifications() {
+        return notificationsRepository.findAll();
+    }
+
+    @GetMapping(value = "/notification/{notificationId}")
+    public List<NotificationsModel> getNotificationsById(@PathVariable String notificationId) {
+        return notificationsRepository.getNotificationById(notificationId);
+    }
+
+    @GetMapping(value = "/notification/{notificationId}/{notificationType}")
+    public List<NotificationsModel> getNotificationByIdAndType(@PathVariable String notificationId, @PathVariable String notificationType) {
+        return notificationsRepository.getNotificationByIdAndType(notificationId, notificationType);
+    }
+
+}
+-------------------------------------------------------------------------------------
+package com.sc.model;
+
+import javax.persistence.*;
+import java.util.Date;
+
+@Entity
+@Table(name = "notifications")
+public class NotificationsModel {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
+    private Long id;
+
+    private String guid;
+
+    private String notificationId;
+
+    private String notificationType;
+
+    private String notificationMessage;
+
+    @Column(name = "time_stamp")
+    @Temporal(TemporalType.TIMESTAMP)
+    private Date timeStamp = new Date();
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getGuid() {
+        return guid;
+    }
+
+    public void setGuid(String guid) {
+        this.guid = guid;
+    }
+
+    public String getNotificationId() {
+        return notificationId;
+    }
+
+    public void setNotificationId(String notificationId) {
+        this.notificationId = notificationId;
+    }
+
+    public String getNotificationType() {
+        return notificationType;
+    }
+
+    public void setNotificationType(String notificationType) {
+        this.notificationType = notificationType;
+    }
+
+    public String getNotificationMessage() {
+        return notificationMessage;
+    }
+
+    public void setNotificationMessage(String notificationMessage) {
+        this.notificationMessage = notificationMessage;
+    }
+
+    public Date getTimeStamp() {
+        return timeStamp;
+    }
+
+    public void setTimeStamp(Date timeStamp) {
+        this.timeStamp = timeStamp;
+    }
+
+}
+-------------------------------------------------------------------------------------
+package com.sc.service;
+
+import com.sc.model.NotificationsModel;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import java.util.List;
+
+@Repository
+public interface NotificationsRepository extends JpaRepository<NotificationsModel, Long> {
+
+    @Query(value = "select * from pdbuser.notifications where notification_id=:notificationId", nativeQuery = true)
+    List<NotificationsModel> getNotificationById(@Param("notificationId") String notificationId);
+
+    @Query(value = "select * from pdbuser.notifications where notification_id=:notificationId and notification_type=:notificationType", nativeQuery = true)
+    List<NotificationsModel> getNotificationByIdAndType(@Param("notificationId") String notificationId, @Param("notificationType") String notificationType);
+
+}
+-------------------------------------------------------------------------------------
+server.port=8083
+
+#spring.datasource.driver-class-name=org.postgresql.Driver\
+#spring.datasource.url=jdbc:postgresql://10.23.219.25:5432/enabledb?currentSchema=notifications_schema
+#spring.datasource.username=devops
+#spring.datasource.password=kari1234
+
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.Oracle12cDialect
+spring.datasource.url=jdbc:oracle:thin:@10.23.211.218:1621:TDS20SIT
+spring.datasource.username=pdbuser
+spring.datasource.password=pdbuser
+-------------------------------------------------------------------------------------
