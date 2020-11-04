@@ -1,0 +1,918 @@
+-----------------------------------------------------------------------------------------------
+	Python Django
+------------------------------------------------------------------------------------------------
+Injection Flaws - LDAP Injection
+views.py
+239
+ldap_filter = '(&(title="%s"))' % q
+4             ldap_filter = app_ldap.filter.filter_format(
+------------------------------------------------------------------------------------------------
+Vulnerable Components - Using Components From Untrusted Source
+base.html
+6
+untrusted jQuery
+3 static 
+
+base.html
+100
+js load from untrusted source
+3 actual + integrity
+
+requirements.txt
+1
+-e git
+3 Django 2.2.2
+------------------------------------------------------------------------------------------------
+Cross Site Request Forgery - Cross Site Request Forgery
+views.py
+14
+The code is vulnerable because no explicit CSRF validation is done. The built-in Django middleware is not used so no automatic check is performed. An attacker could create a forged request to post comments on behalf of the user.
+2   in dispatch method -> @method_decorator([login_required, csrf_protect])
+
+views.py
+34
+uses "csrf_exempt" to disable Django's built-in CSRF
+remove and place in above class
+
+views.py
+56
+This code is vulnerable because it has an error in logic, causing to not doing the required CSRF checks for users that have super-user permissions. In case of CSRF attacks, the system will protect to non-super user but will be vulnerable for super users.
+2             return _accept_reject_payment_superuser(request, payment, self.PAYMENT_ACCEPTED)
+------------------------------------------------------------------------------------------------
+Cross-Site Scripting (XSS) - Stored Cross-Site Scripting
+views.py
+20
+In this line of code, variable is marked as safe for rendering output. After marking the variable as safe it must be encoded or escaped before rendering, which is not performed makes the code vulnerable to XSS.
+1         calendar_events = Calendar.objects.all().order_by('-date')
+
+chats.html
+22
+In this block of code, while rendering the message from the database, which is user-controlled, the Django auto escaping feature is explicitly turned off. Due to this all the messages are treated as safe and are not escaped for the Cross-site scripting metacharacters.
+3 		<b>Message:</b>{{ msg.message }}
+
+details.html, views.py
+25, 78
+autoescape,             review.content = format_html(review.content)
+2         {{ review.content }}
+
+success.html
+9
+review.review|safe
+4 remove safe
+------------------------------------------------------------------------------------------------
+Cross-Site Scripting (XSS) - Reflected Cross-Site Scripting
+views.py
+36
+In this line variable "training_search_query" is marked as safe for output rendering without encoding and escaping for XSS payload metacharacters.
+2        context['training_search_query'] = self.kwargs['search_query']
+
+search_results.html
+10
+|safe
+2 remove safe
+
+search_results.html
+9
+|safe
+3     <h4>Search result for " {{ game_searched }}	"</h4>
+
+search.html, views.py
+21, 61
+safe, context['query'] = mark_safe(query)
+remove safe,         response['X-XSS-Protection'] = '1; mode=block'
+------------------------------------------------------------------------------------------------
+Security Misconfiguration - Debug Features Enabled
+production.py
+12
+DEBUG = bool(os.environ.get('DEBUG', False))
+4 DEBUG=False
+
+settings.py
+38
+DEBUG from os.environ
+1 if os.environ.get('REPORT_ENABLE_DEBUG', '').lower() == 'true':
+------------------------------------------------------------------------------------------------
+Security Misconfiguration - Disabled Security Features
+middleware.py
+54
+middleware
+Disabling Security Middleware by removing it from the middleware list disables some security monitoring measures like browser XSS filter, content type nosniff protection, HSTS, SSL/HTTPS redirect, and others.
+1 - 'django.middleware.security.SecurityMiddleware',
+
+settings.py
+24
+settings does not include the protection against clickjacking attacks, which is available in Django and in general there is no good reason to not activate it.
+4    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+settings.py
+48
+middleware that does the CSRF checks on every request is not included in the list of enabled middleware. An attacker will be able to trick real users into performing actions on the system using.
+1     'django.middleware.csrf.CsrfViewMiddleware',
+
+settings.py
+53
+ALLOWED_HOSTS = ['*']
+1 allow 6 hosts
+
+settings.py
+66
+The settings in this solution is not secure because the configured variables does not ensure that outgoing e-mails are sent over encrypted connections.
+1 remove
+
+common
+54
+middleware
+1 - 'django.middleware.security.SecurityMiddleware',
+------------------------------------------------------------------------------------------------
+Information Exposure - Sensitive Data Exposure
+production.py
+83
+Hardcoding both EMAIL_HOST_USER username and EMAIL_HOST_PASSWORD password makes the application vulnerable to Information Exposure. Now anyone who has access to the source code can get access to the production email to perform, for example, phishing email attacks.
+4 from config
+------------------------------------------------------------------------------------------------
+Information Exposure - Debug Information
+views.py
+32
+adds the stack trace information in the contex
+3 remove
+------------------------------------------------------------------------------------------------
+Access Control - Using input from untrusted sources
+forms.py
+22
+Defining the staff role to new users through a hidden field in the registration form can lead to a security bypass. An attacker could set true on is_staff hidden input then get access to the admin interface.
+4 - The removal of the hidden role field to the registration form ensures that staff and other roles can only be assigned inside the admin interface by an admin user.
+
+middleware.py & middleware.py
+14,17
+Intending to identify administrator (is_superuser) or editor (is_editor) users roles based on set cookies let the application vulnerable to Improper Authentication. An adversary could get access to add book editor page by, for example, setting a editor=True cookie.
+middleware.py -> remove & views.py -> if (not self.request.user.userprofile.is_editor or
+------------------------------------------------------------------------------------------------
+Insecure Cryptography - Insufficiently Protected Credentials
+views.py
+164, 185
+xor encrypt
+4 - bcrypt password
+
+models.py
+16
+self.password = raw_password
+4 remove
+------------------------------------------------------------------------------------------------
+Insufficient Transport Layer Protection - Unprotected Transport of Credentials
+security.py
+22
+Disabling SECURE_SSL_REDIRECT for API requests with the secure=false  + remove line 22
+1/3 SECURE_SSL_REDIRECT = True	
+
+security.py, security.py
+13, 20
+request.GET.get('ssl_redirect') == 'true', 
+remove, SECURE_SSL_REDIRECT = True
+
+production.py
+24
+SECURE_REDIRECT_EXEMPT = ['api/login/', 'user/login/']
+4 remove
+------------------------------------------------------------------------------------------------
+Insecure Cryptography - Exposed Key
+common.py
+28
+Hard-coding the SECRET_KEY in the source code
+3 - SECRET_KEY shd not be hardcoded (remove settings.sh) - fetch from config
+
+views.py
+174
+Allowing any authenticated user to request all Django settings variables causes the application to expose cryptographic keys. 
+2 permission_classes = (IsAuthenticated, IsAdminUser)
+------------------------------------------------------------------------------------------------
+Authentication - Weak Password Policy
+settings.py
+70
+password validator
+2
+Add many validators
+------------------------------------------------------
+Authentication - Insecure Password Change Function
+forms.py
+82
+Allowing the password change without requesting the old password is considered the most insecure scenario. 
+3/4 inherit class PasswordChangeForm
+
+forms.py
+110
+no validation
+4 check old password         if not self.user.check_password(old_password):
+------------------------------------------------------
+Authentication - Insufficiently Protected Credentials
+settings.py
+69
+password hashers
+3 PBKDF2PasswordHasher
+
+------------------------------------------------------
+Authentication - Insufficient Anti-Automation
+views.py
+96
+unlimited trial-and-error login attempts
+1
+rate limit & captcha
+
+views.py
+37
+login
+4
+rate-limit should be included in the login page 1/s
+------------------------------------------------------
+Weak Password Policy
+common.py
+108
+[]
+2
+All valiodators
+------------------------------------------------------
+Injection Flaws - Email Injection
+views.py
+254
+3 forbid_multi_line_headers 
+
+views.py
+257
+(foo\r\nX-Injected-Header: bar) t
+3 In this case EmailMessage class calls forbid_multi_line_headers function to check for CRLF characters.
+
+message.py
+259
+Allowing e-mail inputs to contain CRLF (Carriage Return, \r) and (Line Feed, \n) characters makes the application vulnerable to Email Header Injection. Now an attacker can include CRLF characters in the To e-mail input (user@mail.com\r\nCC: injected@mail.com) then injecting to the header a Carbon Copy malicious e-mail.
+4 SafeMIMEText
+In order to mitigate Email injection, users' input must not contain CRLF (Carriage Return, \r) and (Line Feed, \n) characters. In this case SafeMIMEText class calls forbid_multi_line_headers function to check for CRLF characters.
+------------------------------------------------------
+Injection Flaws - HTTP Injection
+views.py
+49 
+setting content in cookie
+3 - cookie value escaped and encoded
+
+views.py
+49
+HTTP injection
+1 response.set_cookie('query', request.GET.get('q'))
+
+response.py
+114
+allowing redirection
+2,3 - \r & \n - raise error
+------------------------------------------------------
+Injection Flaws - XQuery Injection
+- forms.py
+- 143
+- xquery
+- Solution 3 (self.ecscape_string(username))
+
+views.py
+168
+(query="anything" or "1"="1" or .="")
+2                 query.replace('"', '').replace('%22', '').replace('&', ''))
+------------------------------------------------------
+Injection Flaws - OS Command Injection
+- views.py
+- 16
+- if form.is_invalid()
+- Solution 3 (check_output - CalledProcessError)
+
+- views.py
+17
+Popen
+1/3 - shell=False
+------------------------------------------------------
+Injection Flaws - NoSQL Injection
+- views.py
+- 56
+- where + query + 
+- Solution 1 ($regex)
+
+views.py
+54
+self.request.GET, {'is_flagged': False})
+1
+In order to mitigate MongoDB NoSQL injection the GET search dictionary statement should be avoided and replaced by $regex statement using a dictionary to include the user search string.
+get('q') & regex
+
+views.py
+259
+Joining API search strings without validation into MongoDB $where statement queries,
+1 replace where by regex
+------------------------------------------------------
+Injection Flaws - Local File Inclusion
+views.py
+36
+Providing execution path in hidden input fields which will allow attackers to access system file by passing various path and get system information.
+1     tran_path = Transactions.objects.filter(transaction_id = param)
+
+views.py
+295, 312
+Opening files from URL GET parameters
+
+- views.py
+- 295 & 312, 218
+- open(path)
+- Solution 2 (FileResponse)
+
+- views.py
+- 218
+param
+- 4 Object
+
+- views.py
+- 283
+- 2 - server file must not be openend from URL GET parameter
+
+views.py
+183,189,227
+4 - load & parse, Object
+------------------------------------------------------------------------------------------------------------
+Injection Flaws - Path Traversal
+views.py
+54
+2 - uuid4
+
+views.py
+112
+1,4 - remove
+------------------------------------------------------------------------------------------------------------
+Injection Flaws - Remote File Inclusion
+base.html
+6
+untrusted CDN
+3 - static
+
+- views.py
+- 164
+- open(file.upload.path)
+- Solution 3 (content-type & content-security policy)
+
+views.py
+260
+request.GET.get('file')
+4 -     site = 'http://127.0.0.1:8000/'
+
+home.html, view_reactor.html, views.py
+13, 38, 263
+$.getScript(url,function(){,         response = urllib.urlopen(file)
+4     site = settings.SITE
+------------------------------------------------------------------------------------------------------------
+Injection Flaws - SQL Injection
+- views.py
+- 109
+- % query
+- Solution 1 (name__icontains)
+
+views.py
+16
+select query
+2 - cursor.execute(sql, [param, param])
+
+views.py
+109
+select
+1 - Object
+
+views.py
+149
+foo" OR is_public = 0 OR name LIKE "%*, 
+2        query = Q()
+
+models.py
+11
+In this block of code, cursor method is used to query the database. Parameter in the raw query is user-controlled and is not escaped for the SQL metacharacters and the query is not parameterized before querying the database.
+1 ORM        return self.filter(email=email).exists()
+
+------------------------------------------------------------------------------------------------
+Authentication - Username Enumeration
+- forms.py
+- 114 
+- user_cache
+- Solution 3 (get_invalid_login_error)
+
+views.py
+28
+if
+1 - check before if
+
+- forms.py, password_reset_done.html
+- 161, 4
+- error_messages
+- Solution 3 (remove lines in 161 & user|title)
+
+views.py
+165,188
+permission_classes = (IsAuthenticated, IsAdminUser)
+4 permission_classes = (AllowAny, )
+
+------------------------------------------------------------------------------------------------
+Session Handling - Exposed Session Tokens
+- middleware.py
+- 9
+- session_key
+- Solution 1 (Original session middleware)
+
+- middleware.py & production.py
+- 10, 24
+- session
+- Solution 1 (SSL_Rediret True and reduce lines)
+
+production.py
+25
+SESSION_COOKIE_SECURE=False
+4 - SESSION_COOKIE_SECURE=True
+
+views.py
+73, 85, 101, 113
+Exposing the token by directly including it in URL and passing through query string helps hackers to easily identify the session token ID and attacker can use other unauthorized URL.
+4 remove To make session tokens safe, it must never be exposed directly to the users (via query parameter). Use Django's default technique to store session token in the cookie so that attackers cannot retrieve the values by intercepting requests.
+------------------------------------------------------------------------------------------------
+Session Handling - Insufficient Session Expiration
+- settings.py
+- 103
+- MAX_AGE
+- Solution 4 (Modify multiple files)
+
+db.py & production.py
+15 & 52
+long period
+2
+24hrs and remove lines, SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+settings.py
+47
+SESSION_COOKIE_AGE - high value & SESSION_EXPIRE_AT_BROWSER_CLOSE=False
+1
+604800
+----------------------------------------------------------------
+Authentication - Insecure Password Reset Function
+- forms.py
+- 81
+- new_password
+- 3/4 (super().save)
+
+token.py
+15
+naive hash algorithm SHA-1 user
+4 send reset link with lesser expiration time
+----------------------------------------------------------------
+Authentication - Improper Authentication
+- db.py
+- 20
+- self.user_id - Allowing user IDs to be set as session key 
+- Solution 4 (Remove multiple lines)
+
+forms.py
+111
+Including a GET parameter login_as in
+3 - Exclude GET parameter login_as
+
+views.py
+13
+field for current password is Missing
+3 - verify current password
+
+views.py
+79
+improper Authentication
+3 checkfor authenticaiton and access (is_editor)
+
+views.py
+79, 83
+3 
+class AddBookFormView(LoginRequiredMixin, FormView):
+login_url = reverse_lazy('users:login')
+if (not self.request.user.userprofile.is_editor or
+----------------------------------------------------------------
+Authentication - Forceful Browsing
+- views.py
+- 158
+- permission_classes = ()
+- Solution 4 (Add IsAuthenticated & IsNotFlagged, remove user ID from edit profile API URL)
+
+views.py
+243
+dispatch - class-EmailModerateTemplateView
+2 In order to protect moderator e-mail page against forceful browsing attack the access validations 
+LoginRequiredMixin authentication, permission_required, and is_moderator were added.
+
+home.html, views.py
+18, 84
+display: none;, 
+3 {% if request.user.userprofile.is_editor %},         if (not self.request.user.userprofile.is_editor or
+------------------------------------------------------------------------------------------------
+Session Handling - Weak Session Token Generation
+- db.py
+- 12
+- session_key
+- Solution 3 (get_random_string(32,)
+
+db.py
+16
+Using an MD5 hash of the user-id as the session key makes the application vulnerable to session hijacking. 
+1
+To prevent weak session token generation, the session key must be at least 128 bits long and providing at 
+least 64 bits of entropy to be considered secure against session hijacking attacks.
+
+views.py, setting.py
+275, 104
+fixed sessin id & long value
+1
+getrandom string & 120
+------------------------------------------------------------------------------------------------
+Insufficient Transport Layer Protection - Unprotected Transport of Sensitive Information
+- production.py
+- 26
+- CSRF = False
+- 2 - SESSION_COOKIE_SECURE = True
+
+security.py
+20
+Creating a def is_secure(self, request) method to detect secure requests but adding a DEBUG 
+1 -  request.is_secure()
+------------------------------------------------------------------------------------------------
+Sensitive Data Storage - Plaintext Storage of Passwords
+- common.py
+- 104
+- plaintextpassword
+- 4 - multiple hashers (Argon2)
+
+models.py
+9
+set raw password
+1 - make_password - Hash using Argon2 algorithm
+
+common.py, models.py
+104, 14
+unslated password hashers, set raw password
+all 4 password hashers + make_password
+
+hashers.py
+44
+Using a non-hashing make_password function
+4 passwords must be hashed, preferably with the Argon2 algorithm.
+        hasher = identify_hasher(encoded)
+    return hasher.encode(password, salt)
+
+------------------------------------------------------------------------------------------------
+Sensitive Data Storage - Plaintext Storage of Sensitive Information
+- views.py
+- 38
+- logging
+- 1 - pprint(cart)
+
+views.py
+55
+logger
+3 - no logging
+
+- models.py & models.py
+- 68 & 65
+- cc number & credit card
+- 2 - remove
+------------------------------------------------------------------------------------------------
+Insecure Cryptography - Weak Algorithm Use
+- models.py
+- 12
+- self.password = make_password(raw_password, hasher='unsalted_md5')
+- 3 - remove
+
+models.py
+39
+hash_inst = hashlib.md5(plaintext_security_code.encode('utf-8'))
+4        hasher = hashers.PBKDF2PasswordHasher()
+
+common.py
+104
+unsalted
+4 Argon2, PBKDF2PasswordHasher, PBKDF2SHA1PasswordHasher, BCryptSHA256PasswordHasher
+
+commons.py, models.py
+104, 17
+not use of 4 password hashers, unsalted
+------------------------------------------------------------------------------------------------
+XML External Entities (XXE) - XML External Entities (XXE)
+- parsers.py
+- 20
+- pulldom.parse
+- 4 - etree.DefusedXMLParser + add code
+
+- parsers.py
+- 17
+- etree.XMLParser
+- 4 - etree.DefusedXMLParser
+
+- parsers.py
+- 16
+- untangle.parse
+- 2 - etree.DefusedXMLParser
+
+- views.py
+- 177
+- parser.setFeature
+- 4 - etree.DefusedXMLParser
+
+------------------------------------------------------------------------------------------------
+Access Control - Insecure Direct Object Reference
+home.html
+21
+In this line, link to view the user profile is generated using the parameter which can easily be tampered and allow the user to access the profile of another user.
+1 <a href="{% url 'mobiles:user_profile' logged_in_user.id %}">View Profile</a>
+
+- views.py
+- 39
+- context['transaction_detail'] = get_object_or_404(self.model, id=self.kwargs['transaction_id'])
+- 1 if self.request.user == transaction_detail.user:
+
+views.py
+49
+In this line code, no condition check is implemented to check whether requested project belongs to a logged-in user or not.
+1 files = File.objects.filter(Q(project=project_id) & Q(project__user=request.user))
+
+- views.py
+- 54
+- gamer_details
+- 2
+
+views
+60
+In this block of code, while fetching bank transactions of a user, condition uses only transaction ID, which is specified in the URL but not performing any check whether it belongs to the logged-in user or not.
+1 - transaction_details = get_object_or_404(TransactionDetails, id=transaction_id)
+
+- views.py
+- 65
+- id=score_id
+- 3 (without Q)
+
+- views.py
+- 66
+- try:context['ticket_detail']
+- 1 (Add user=self.request.user)
+
+- views.py
+- 69
+- query_set.filter(history=requested_history_id)
+- 4 (Add user=self.request.user)
+
+views
+69
+In this block of code, "history_id" is used to fetch the list books issued on a date. The "history_id" parameter is specified in the URL, which can be manipulated by a user to access the details of another user. There must be a check to restrict user from accessing the another user's records.
+1 books_issued_by_user = query_set.filter(user=self.request.user, history=requested_history_id)
+
+- views.py
+- 70
+- condition check is missing
+- 1 context['leave_details'] = get_object_or_404(LeaveDetails, user=self.request.user, pk=requested_leave)
+
+views
+153, 162
+When creating private URLs we must avoid using auto-incrementing primary keys, because they can expose all items in the database. Any user can iterate through the records changing the primary key number in the URL then having access to all user profiles data. In this case, it is also possible to edit any user profile data.
+4 - models.py - UUID
+------------------------------------------------------------------------------------------------
+Unvalidated Redirects and Forwards - Unvalidated Redirects and Forwards
+- views.py
+- 27
+- url
+- 2 remove
+
+views.py
+37
+get_absolute_URL() is used as is to redirect the user, 
+3 - models.py - SlugField
+
+views.py
+39
+if self._get_location_of_referer() == self._get_location_of_request():
+4 Remove
+
+views.py
+42
+url from request
+1 - is_safe_url
+
+views.py
+53
+The code is vulnerable because it does not validate the URL or use a whitelist to redirect to allowed target location. An attacker could use this vulnerability to redirect the user to a site the attacker controls.
+1 - define REDIRECT_URLS
+
+views
+54
+request.GET.get('next', BOOKSTORE_HOME_URL))
+1 request.user.is_authenticated() & if is_safe_url(next_url):
+
+http.py, views.py
+17, 91
+Creating a custom version of is_safe_URL with allowed_hosts=None as an optional parameter but not passing allowed hosts Set parameter, a redirection vulnerability is created. An attacker could add a ?next= malicious URL then get the user redirected after login.
+allowed_hosts = set() & allowed_hosts=self.get_success_url_allowed_hosts(),
+------------------------------------------------------------------------------------------------
+Access Control - Missing Function Level Access Control
+- models.py, views.py
+- 36, 243
+- Meta, dispatch
+Assuming that the moderation e-mail sending page access control will be preserved hiding the page link and without access check, it creates a vulnerability. Now a non-moderator user can simply access the page and send moderation e-mails.
+- 4 (decorator ++ raise PermissionDenied +  can send moderation)
+
+- views.py
+- 38
+- post
+- 2 - get_object
+
+views.py
+41
+This code is vulnerable because it only validates if the company exists, but this does not mean the user can view the report of that company. An attacker will be able to download the report of any company, just by changing the ID of the company in the URL of his/her browser.
+4 if not models.Employee.objects.filter(company=company_id, user=request.user).exists():
+
+views.py
+44
+article = super(ArticleManageView, self).get_object(queryset=queryset)
+3 article.author == request.user
+
+home.html
+20
+In this block of code, admin user is identified using the query string parameter (i.e., admin= True). It is not an appropriate authentication technique because the user is able to the access "Admin Dashboard" by manipulating the value of query string parameter.
+<a href="{% url 'exams:user_dashboard' %}">Launch Dashboard</a>
+------------------------------------------------------------------------------------------------
+Security Misconfiguration - Information Exposure
+views.py  & views.py
+136, 94
+ExceptionReporter & traceback.format_exc(), 
+4 remove + production.py DEBUG=False
+
+- views.py
+- 97
+- ExceptionReporter
+- 4 remove exceptionReporter
+
+- settings.py
+- 69
+- SESSION_ENGINE
+- 2 'django.contrib.sessions.backends.db'
+
+- production.py
+- 12
+- DEBUG
+- 1 - DEBUG=False
+
+views.py
+96
+traceback
+remove
+------------------------------------------------------------------------------------------------
+Information Exposure - Error Details
+views.py
+100
+traceback
+1 logger = logging.getLogger(__name__) & inform as something went wrong
+
+views.py
+144
+traceback.format_exception
+4 return Response(status=status.HTTP_400_BAD_REQUEST)
+
+- views.py
+- 239
+- ExceptionReporter
+- 2 Remove ExceptionReporter
+------------------------------------------------------------------------------------------------
+Cross-Site Scripting (XSS) - DOM-Based Cross-Site Scripting
+home.html
+23
+q|safe
+1 - disable data
+
+home.html
+23
+q|urlencode
+4 remove (even result)
+
+preview.html
+18
+theme (url)
+4 - encode
+
+search_results.html
+9
+autoescape
+4 - remove autoescape
+
+success.html
+9
+review marked as safe
+4 - remove safe
+
+topic.html
+17
+When creating our own custom solution to add content to an HTML page using JavaScript/Ajax we have to keep in mind that content created by users ('comments') is considered unsafe and needs to be escaped. Otherwise, any HTML tags including scripts can be injected.
+3     <p>{{ comment.comment|urlizetrunc:30 }}</p>
+------------------------------------------------------------------------------------------------
+Injection Flaws - Deserialization of Untrusted Data
+utils.py
+74
+using pickle to serialaise
+4 - remove pickle
+
+middleware.py
+14
+using pickle to serialaise
+1/3 - remove pickle
+
+views.py
+214
+Loading untrusted data using the yaml.load
+1/2 - use yaml.safe_load + AttributeError
+
+parsers.py
+19
+Using yaml.load to deserialize untrusted data without validation makes the application vulnerable to deserialization injection attacks. An attacker could replace an input value with malicious code, this code will then be loaded on the server and execute the malicious code.
+4 - use yaml.safe_load
+------------------------------------------------------------------------------------------------
+base_template.html
+100
+from CDN
+1 add integrity
+
+requirements.txt
+1
+untrusted site
+2 - remove
+
+base.html
+6
+jQuery hosttedon insecure CDN
+1- host jQuery on private static files server
+------------------------------------------------------------------------------------------------
+Vulnerable Components - Using Known Vulnerable Components
+base.html & requirements.txt
+6 & 1
+outdated version of Django and jQuery
+3 -  Django 2.2.5 and jQuery 3.3.1
+
+http.py
+4
+not stripping URL
+1/4         url = url.strip()
+
+requirements.txt
+1
+old verison
+2 - installing 1.9.x
+
+views.py
+47
+'<p>The requested URL {{ request_path }} was not found on this server.</p>')
+2   '<p>The requested resource was not found on this server.</p>')
+------------------------------------------------------------------------------------------------
+Insufficient Logging and Monitoring - Insufficient Logging and Monitoring
+common.py
+179
+The absence of an e-mail logger handler in the logging
+1/2/4 - Add [mail_admins] in handlers & in logger ['handlers': ['console', 'file', 'mail_admins'],]
+
+production.py
+7
+ADMINS list empty
+4 - email list
+------------------------------------------------------------------------------------------------
+	Python Basic
+------------------------------------------------------------------------------------------------
+Injection Flaws- OS Command Injection
+- provider_json.py 2  
+- provider_json.py - os.popen (28) 4
+ 
+Injection Flaws- NoSQL Injection
+- comment.py (74) 4 - regex
+ 
+Injection Flaws- SQL Injection
+- provider.py - delete (81) 4
+
+- provider.py - select (39) 4
+
+- provider.py - insert (20) 3
+ 
+- provider.py - insert in for loop - 1
+ 
+Authentication- Username Enumeration
+- forms.py (66) 3
+
+forms.py
+66
+detailed error message
+
+- forms.py (54) 2 (Remove)
+
+- forms.py (127) 1 (Remove)
+ 
+Authentication- Insecure Password Reset Function
+- token.py (29) 3
+
+Authentication- Improper Authentication
+- views.py (89) 1
+
+Session Handling - Weak Session Token Generation
+- db.py (19) 2
+
+- db.py (16) 4/1 (get_random_string(32,)
+------------------------------------------------------------------------------------------------
