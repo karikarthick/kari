@@ -1,0 +1,103 @@
+#!/bin/ksh
+
+elkIp=10.23.195.25
+esPort=9205
+kibanaPort=5605
+logstashPort=5045
+esDataDir=/tap/custom/elk/data/elasticsearch
+esLogDir=/tap/custom/elk/log/elasticsearch
+kibanaLogDir=/tap/custom/elk/log/kibana
+
+echo "Started @ [$(date)]"
+
+rpm -ivh /opt/ITRS/ELK/jdk-8u161-linux-x64.rpm
+
+rpm -e elasticsearch
+rpm -ivh /opt/ITRS/ELK/elasticsearch-7.6.1-x86_64.rpm
+elasticsearchYml=/etc/elasticsearch/elasticsearch.yml
+echo "bootstrap.system_call_filter: false" > $elasticsearchYml
+echo "cluster.initial_master_nodes: [\"$elkIp\"]" >> $elasticsearchYml
+echo "http.port: $esPort" >> $elasticsearchYml
+echo "network.host: $elkIp" >> $elasticsearchYml
+echo "path.data: $esDataDir" >> $elasticsearchYml
+echo "path.logs: $esLogDir" >> $elasticsearchYml
+mkdir -p $esDataDir
+chown -R elasticsearch:elasticsearch $esDataDir
+
+rpm -e logstash
+rpm -ivh /opt/ITRS/ELK/logstash-7.6.1.rpm
+lsConf=/etc/logstash/conf.d/logstash.conf
+echo "input {" > $lsConf
+echo "  beats {" >> $lsConf
+echo "    port => $logstashPort" >> $lsConf
+echo "  }" >> $lsConf
+echo "}" >> $lsConf
+echo "output {" >> $lsConf
+echo "  elasticsearch {" >> $lsConf
+echo "    hosts => [\"$elkIp:$esPort\"]" >> $lsConf
+echo "  }" >> $lsConf
+echo "}" >> $lsConf
+
+rpm -e kibana
+rpm -ivh /opt/ITRS/ELK/kibana-7.6.1-x86_64.rpm
+kibanaYml=/etc/kibana/kibana.yml
+echo "elasticsearch.hosts: [\"http://$elkIp:$esPort\"]" > $kibanaYml
+echo "logging.dest: $kibanaLogDir/kibana.log" >> $kibanaYml
+echo "server.host: $elkIp" >> $kibanaYml
+echo "server.port: $kibanaPort" >> $kibanaYml
+mkdir -p $kibanaLogDir
+chown -R kibana:kibana $kibanaLogDir
+
+rpm -e metricbeat
+rpm -ivh /opt/ITRS/ELK/metricbeat-7.6.1-x86_64.rpm
+metricbeatYml=/etc/metricbeat/metricbeat.yml
+echo "metricbeat.config.modules:" > $metricbeatYml
+echo "  path: \${path.config}/modules.d/*.yml" >> $metricbeatYml
+echo "  reload.enabled: false" >> $metricbeatYml
+echo "setup.template.settings:" >> $metricbeatYml
+echo "  index.number_of_shards: 1" >> $metricbeatYml
+echo "  index.codec: best_compression" >> $metricbeatYml
+echo "setup.kibana:" >> $metricbeatYml
+echo "  host: \"$elkIp:$kibanaPort\"" >> $metricbeatYml
+echo "output.elasticsearch:" >> $metricbeatYml
+echo "  hosts: [\"$elkIp:$esPort\"]" >> $metricbeatYml
+echo "processors:" >> $metricbeatYml
+echo "  - add_host_metadata: ~" >> $metricbeatYml
+echo "  - add_cloud_metadata: ~" >> $metricbeatYml
+echo "  - add_docker_metadata: ~" >> $metricbeatYml
+echo "  - add_kubernetes_metadata: ~" >> $metricbeatYml
+
+rpm -e filebeat
+rpm -ivh /opt/ITRS/ELK/filebeat-7.6.1-x86_64.rpm
+filebeatYml=/etc/filebeat/filebeat.yml
+echo "filebeat.inputs:" > $filebeatYml
+echo "- type: log" >> $filebeatYml
+echo "  enabled: true" >> $filebeatYml
+echo "  paths:" >> $filebeatYml
+echo "    - /tmp/*.log" >> $filebeatYml
+echo "filebeat.config.modules:" >> $filebeatYml
+echo "  path: ${path.config}/modules.d/*.yml" >> $filebeatYml
+echo "  reload.enabled: false" >> $filebeatYml
+echo "setup.template.settings:" >> $filebeatYml
+echo "  index.number_of_shards: 1" >> $filebeatYml
+echo "output.logstash:" >> $filebeatYml
+echo "  hosts: [\"$elkIp:$logstashPort\"]" >> $filebeatYml
+echo "processors:" >> $filebeatYml
+echo "  - add_host_metadata: ~" >> $filebeatYml
+echo "  - add_cloud_metadata: ~" >> $filebeatYml
+echo "  - add_docker_metadata: ~" >> $filebeatYml
+echo "  - add_kubernetes_metadata: ~" >> $filebeatYml
+chmod go-w $filebeatYml
+
+service elasticsearch start
+initctl start logstash
+service kibana start
+service metricbeat start
+service filebeat start
+
+sleep 30
+metricbeat setup --dashboards
+
+echo "Ended @ [$(date)]"
+
+#---------------------------------- End of file ------------------------
