@@ -7,6 +7,17 @@ views.py
 ldap_filter = '(&(title="%s"))' % q
 4             ldap_filter = app_ldap.filter.filter_format(
 ------------------------------------------------------------------------------------------------
+Cross-Site Request Forgery - Cross-Site Request Forgery
+views.py
+38
+if request.GET.get('delete', '')
+3 - Check GET and POST
+
+views.py
+34
+uses "csrf_exempt" to disable Django's built-in CSRF controls
+4 - Remove and add in above function
+------------------------------------------------------------------------------------------------
 Vulnerable Components - Using Components From Untrusted Source
 base.html
 6
@@ -37,7 +48,7 @@ remove and place in above class
 views.py
 56
 This code is vulnerable because it has an error in logic, causing to not doing the required CSRF checks for users that have super-user permissions. In case of CSRF attacks, the system will protect to non-super user but will be vulnerable for super users.
-2             return _accept_reject_payment_superuser(request, payment, self.PAYMENT_ACCEPTED)
+2 - return _accept_reject_payment_superuser(request, payment, self.PAYMENT_ACCEPTED)
 ------------------------------------------------------------------------------------------------
 Cross-Site Scripting (XSS) - Stored Cross-Site Scripting
 views.py
@@ -202,6 +213,11 @@ forms.py
 110
 no validation
 4 check old password         if not self.user.check_password(old_password):
+
+views.py
+180
+Requesting the user's old password but not validating it makes the application password change method insecure
+4 - In order to make ensure that the changing password request came from the user account owner, the old password must be included and validated.
 ------------------------------------------------------
 Authentication - Insufficiently Protected Credentials
 settings.py
@@ -222,6 +238,11 @@ views.py
 login
 4
 rate-limit should be included in the login page 1/s
+
+forms.py
+213
+Not limiting the number of trial-and-error login attempts
+1 - define fun and call from clean In order to mitigate brute-force or dictionary attacks, a challenge-response test (reCAPTCHA) must be included in the login page and validated in the login form.
 ------------------------------------------------------
 Weak Password Policy
 common.py
@@ -320,11 +341,11 @@ Opening files from URL GET parameters
 - views.py
 - 218
 param
-- 4 Object
+- 4 Object (Transactions.objects.filter(transaction_id=)
 
 - views.py
 - 283
-- 2 - server file must not be openend from URL GET parameter
+- 2 - server file must not be openend from URL GET parameter (remove photo.html)
 
 views.py
 183,189,227
@@ -386,22 +407,38 @@ models.py
 In this block of code, cursor method is used to query the database. Parameter in the raw query is user-controlled and is not escaped for the SQL metacharacters and the query is not parameterized before querying the database.
 1 ORM        return self.filter(email=email).exists()
 
+views.py
+16/18
+select query
+2 - % at first and last => with %s placeholders and automatically escapes and inserts param
+
+2 vulnerabilities
+193/238
+foo%" OR is_public = 0 OR name LIKE "%*, 
+In order to mitigate SQL injection database queries should be performed using Django's ORM (Object-Relational Mapping) filter method.
+for photo in Photo.objects.filter(name__icontains=query, is_public=True)[:100]
 ------------------------------------------------------------------------------------------------
 Authentication - Username Enumeration
+
+forms.py
+60
+Detailed login error messages can expose whether a user has been registered on the website or if a password belongs to a user.
+2 - return super(LoginForm, self).clean()
+
 - forms.py
 - 114 
 - user_cache
 - Solution 3 (get_invalid_login_error)
 
-views.py
-28
-if
-1 - check before if
-
 - forms.py, password_reset_done.html
 - 161, 4
 - error_messages
 - Solution 3 (remove lines in 161 & user|title)
+
+views.py
+28
+if
+1 - check before if
 
 views.py
 165,188
@@ -447,6 +484,11 @@ settings.py
 SESSION_COOKIE_AGE - high value & SESSION_EXPIRE_AT_BROWSER_CLOSE=False
 1
 604800
+
+production.py
+47
+SESSION_COOKIE_AGE = 365 * 24 * 60 * 60 & SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+2 - SESSION_COOKIE_AGE = 24 * 60 * 60 & SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 ----------------------------------------------------------------
 Authentication - Insecure Password Reset Function
 - forms.py
@@ -474,6 +516,11 @@ views.py
 13
 field for current password is Missing
 3 - verify current password
+
+views.py
+64
+form.fields["user_id"].initial = request.user.id (In this line of code, "user ID" is rendered as a hidden form field, which is used to identify the user in order to perform the password-change process. User can change the password of any other user by manipulating the hidden form field.)
+1 - Remove the line
 
 views.py
 79
@@ -632,6 +679,11 @@ views.py
 In this line code, no condition check is implemented to check whether requested project belongs to a logged-in user or not.
 1 files = File.objects.filter(Q(project=project_id) & Q(project__user=request.user))
 
+views.py
+49
+In this line code, no condition check is implemented to check whether requested project belongs to a logged-in user or not.
+OrderDetails.objects.filter(order=ord_id, user=request.user)
+
 - views.py
 - 54
 - gamer_details
@@ -657,7 +709,7 @@ In this block of code, while fetching bank transactions of a user, condition use
 - query_set.filter(history=requested_history_id)
 - 4 (Add user=self.request.user)
 
-views
+views.py
 69
 In this block of code, "history_id" is used to fetch the list books issued on a date. The "history_id" parameter is specified in the URL, which can be manipulated by a user to access the details of another user. There must be a check to restrict user from accessing the another user's records.
 1 books_issued_by_user = query_set.filter(user=self.request.user, history=requested_history_id)
@@ -781,12 +833,12 @@ Cross-Site Scripting (XSS) - DOM-Based Cross-Site Scripting
 home.html
 23
 q|safe
-1 - disable data
+1 - disable data (remove safe & urlencode and add form)
 
 home.html
 23
 q|urlencode
-4 remove (even result)
+4 remove
 
 preview.html
 18
